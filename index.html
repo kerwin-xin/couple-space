@@ -412,7 +412,7 @@ body::before {
         <h2 style="font-size:1.1em;">😤 生气记录本</h2>
         <button class="btn btn-primary btn-sm" onclick="openAddModal('anger')">+ 记录生气</button>
       </div>
-      <div class="points-info">💡 记录生气 -50分 | 哄一哄对方消气 +20分</div>
+      <div class="points-info">💡 记录生气 +5分 | 另一方「哄一哄」消耗50积分</div>
       <div id="angers-list"></div>
     </div>
 
@@ -757,8 +757,7 @@ async function addAnger() {
   if (!reason) { showToast('请填写生气原因', 'error'); return; }
   const moodEl = document.querySelector('#mood-select .selected');
   data.angers.unshift({ id: genId(), reason, mood: moodEl ? moodEl.dataset.mood : '😤', author: document.getElementById('af-author').value, date: Date.now(), resolved: false });
-  data.points -= 50;
-  showToast('-50分！要哄回来哦 😢');
+  addPoints(5, '记录生气');
   await saveData(); closeModal();
   renderAll();
 }
@@ -787,7 +786,8 @@ async function resolveAnger(id) {
   const item = data.angers.find(a => a.id === id);
   if (!item) return;
   item.resolved = true; item.resolvedDate = Date.now();
-  addPoints(20, '哄好啦 💕');
+  data.points = Math.max(0, data.points - 50);
+  showToast('-50分！哄好啦 🤗💕', 'success');
   await saveData();
   spawnHearts(window.innerWidth/2, 200);
   renderAll();
@@ -913,7 +913,7 @@ function renderList(containerId, list, type) {
           ${item.resolved
             ? `<div style="margin-top:8px;font-size:0.85em;color:#77dd77;">✅ 已解决 — ${fmtDate(item.resolvedDate)}</div>`
             : `<div class="card-actions">
-                <button class="btn btn-sm btn-success" onclick="resolveAnger('${item.id}')">🤗 哄一哄 (+20分)</button>
+                <button class="btn btn-sm btn-success" onclick="resolveAnger('${item.id}')">🤗 哄一哄 (-50分)</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteItem('angers','${item.id}')">🗑 删除</button>
               </div>`}
         </div>`;
