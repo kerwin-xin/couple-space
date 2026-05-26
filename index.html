@@ -378,9 +378,12 @@ body::before {
         <div class="countdown-grid" id="countdown-grid"></div>
       </div>
 
-      <div class="sync-banner" id="sync-banner" style="display:none;">
-        <p id="sync-banner-text"></p>
-        <div id="sync-banner-link" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;"></div>
+      <div style="background:linear-gradient(135deg,#fff9c4,#fff176);border-radius:12px;padding:14px 18px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-weight:700;color:#5d4037;font-size:0.9em;">📝 两人备忘录</span>
+          <button class="btn btn-sm btn-primary" onclick="saveMemo()">💾 保存</button>
+        </div>
+        <textarea id="memo-text" placeholder="写点备忘...比如：下次约会去哪、锅锅喜欢吃什么、盖盖的喜好..." style="width:100%;min-height:80px;padding:10px 14px;border:2px solid #ffe082;border-radius:10px;font-size:0.9em;font-family:inherit;resize:vertical;background:white;"></textarea>
       </div>
 
       <div class="dash-quick">
@@ -409,7 +412,7 @@ body::before {
         <h2 style="font-size:1.1em;">😤 生气记录本</h2>
         <button class="btn btn-primary btn-sm" onclick="openAddModal('anger')">+ 记录生气</button>
       </div>
-      <div class="points-info">💡 积分解锁：记录生气 +5分 | 主动道歉并标记已解决 +20分</div>
+      <div class="points-info">💡 记录生气 -50分 | 哄一哄对方消气 +20分</div>
       <div id="angers-list"></div>
     </div>
 
@@ -474,7 +477,7 @@ const COUPON_DEFS = [
   { id: 'c6', name: '美食券', icon: '🍰', cost: 90, desc: '兑换一顿美食请客' },
 ];
 
-let data = { memories: [], angers: [], happyMoments: [], coupons: [], notes: [], points: 0, specialDates: [] };
+let data = { memories: [], angers: [], happyMoments: [], coupons: [], notes: [], points: 0, specialDates: [], memo: '' };
 let online = false;
 
 // Supabase config
@@ -754,7 +757,8 @@ async function addAnger() {
   if (!reason) { showToast('请填写生气原因', 'error'); return; }
   const moodEl = document.querySelector('#mood-select .selected');
   data.angers.unshift({ id: genId(), reason, mood: moodEl ? moodEl.dataset.mood : '😤', author: document.getElementById('af-author').value, date: Date.now(), resolved: false });
-  addPoints(5, '记录生气');
+  data.points -= 50;
+  showToast('-50分！要哄回来哦 😢');
   await saveData(); closeModal();
   renderAll();
 }
@@ -783,7 +787,7 @@ async function resolveAnger(id) {
   const item = data.angers.find(a => a.id === id);
   if (!item) return;
   item.resolved = true; item.resolvedDate = Date.now();
-  addPoints(20, '主动道歉');
+  addPoints(20, '哄好啦 💕');
   await saveData();
   spawnHearts(window.innerWidth/2, 200);
   renderAll();
@@ -866,21 +870,19 @@ function renderAll() {
   renderList('notes-list', data.notes, 'note');
   renderShop();
   renderCoupons();
-  renderSyncBanner();
+  // Load memo (don't overwrite while user is editing)
+  const memoEl = document.getElementById('memo-text');
+  if (memoEl && memoEl !== document.activeElement) {
+    memoEl.value = data.memo || '';
+  }
 }
 
-function renderSyncBanner() {
-  const banner = document.getElementById('sync-banner');
-  const text = document.getElementById('sync-banner-text');
-  const linkDiv = document.getElementById('sync-banner-link');
-  if (!banner || !text || !linkDiv) return;
-  banner.style.display = 'block';
-  const link = 'https://jade-tapioca-579957.netlify.app';
-  text.textContent = '🔗 把这个链接发给盖盖，两人数据实时同步！';
-  linkDiv.innerHTML = `
-    <code style="background:white;padding:6px 10px;border-radius:6px;font-size:0.72em;">${link}</code>
-    <button class="btn btn-primary btn-sm" onclick="copyLink('${link}')">📋 复制</button>
-  `;
+async function saveMemo() {
+  const memoEl = document.getElementById('memo-text');
+  if (!memoEl) return;
+  data.memo = memoEl.value;
+  await saveData();
+  showToast('备忘录已保存！', 'success');
 }
 
 async function copyLink(link) {
@@ -911,7 +913,7 @@ function renderList(containerId, list, type) {
           ${item.resolved
             ? `<div style="margin-top:8px;font-size:0.85em;color:#77dd77;">✅ 已解决 — ${fmtDate(item.resolvedDate)}</div>`
             : `<div class="card-actions">
-                <button class="btn btn-sm btn-success" onclick="resolveAnger('${item.id}')">🤝 道歉和好 (+20分)</button>
+                <button class="btn btn-sm btn-success" onclick="resolveAnger('${item.id}')">🤗 哄一哄 (+20分)</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteItem('angers','${item.id}')">🗑 删除</button>
               </div>`}
         </div>`;
