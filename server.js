@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 3456;
+const PORT = process.env.PORT || 3456;
 const DATA_FILE = path.join(__dirname, 'data.json');
 const MIME = {
   '.html': 'text/html; charset=utf-8',
