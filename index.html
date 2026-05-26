@@ -814,7 +814,7 @@ async function addMemory() {
   const text = document.getElementById('mf-text').value.trim();
   if (!text) { showToast('请填写回忆内容', 'error'); return; }
   const author = document.getElementById('mf-author').value;
-  data.memories.unshift({ id: genId(), text, author, date: Date.now() });
+  data.memories.unshift({ id: genId(), text, author, date: Date.now(), comments: [] });
   const chars = countChineseChars(text);
   const pts = Math.min(chars, 100);
   addPoints(pts, `添加回忆 (${chars}字)`, author);
@@ -828,7 +828,7 @@ async function addAnger() {
   if (!reason) { showToast('请填写生气原因', 'error'); return; }
   const moodEl = document.querySelector('#mood-select .selected');
   const author = document.getElementById('af-author').value;
-  data.angers.unshift({ id: genId(), reason, mood: moodEl ? moodEl.dataset.mood : '😤', author, date: Date.now(), resolved: false });
+  data.angers.unshift({ id: genId(), reason, mood: moodEl ? moodEl.dataset.mood : '😤', author, date: Date.now(), resolved: false, comments: [] });
   const chars = countChineseChars(reason);
   const pts = Math.min(chars, 100);
   addPoints(pts, `记录生气 (${chars}字)`, author);
@@ -840,7 +840,7 @@ async function addHappy() {
   const text = document.getElementById('hf-text').value.trim();
   if (!text) { showToast('请填写开心内容', 'error'); return; }
   const hauthor = document.getElementById('hf-author').value;
-  data.happyMoments.unshift({ id: genId(), text, author: hauthor, date: Date.now() });
+  data.happyMoments.unshift({ id: genId(), text, author: hauthor, date: Date.now(), comments: [] });
   const chars = countChineseChars(text);
   const pts = Math.min(chars, 100);
   addPoints(pts, `记录开心时刻 (${chars}字)`, hauthor);
@@ -881,6 +881,41 @@ async function deleteItem(type, id) {
   const idx = list.findIndex(i => i.id === id);
   if (idx > -1) list.splice(idx, 1);
   await saveData();
+  renderAll();
+}
+
+// ─── Reply Functions ───
+function openReplyModal(type, id) {
+  openModal(`
+    <h3>💬 回复</h3>
+    <div class="form-group"><label>谁回复的？</label>
+      <select id="rp-author"><option value="me">🍳 锅锅</option><option value="you">🍜 盖盖</option></select>
+    </div>
+    <div class="form-group"><label>回复内容</label>
+      <textarea id="rp-text" placeholder="写下回复...（不计积分）"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitReply('${type}','${id}')">💬 回复</button>
+    </div>
+  `);
+}
+
+async function submitReply(type, id) {
+  const text = document.getElementById('rp-text').value.trim();
+  if (!text) { showToast('请填写回复内容', 'error'); return; }
+  const list = data[type];
+  const item = list.find(i => i.id === id);
+  if (!item) return;
+  if (!item.comments) item.comments = [];
+  item.comments.push({
+    id: genId(),
+    text,
+    author: document.getElementById('rp-author').value,
+    date: Date.now()
+  });
+  await saveData(); closeModal();
+  showToast('回复成功！');
   renderAll();
 }
 
@@ -992,6 +1027,7 @@ function renderList(containerId, list, type) {
     const authorClass = item.author === 'me' ? 'me' : 'you';
     const authorLabel = item.author === 'me' ? '🍳 锅锅' : '🍜 盖盖';
     if (type === 'anger') {
+      const angerComments = (item.comments || []);
       return `
         <div class="card anger ${item.resolved ? 'resolved' : ''}">
           <div class="card-header">
@@ -999,14 +1035,22 @@ function renderList(containerId, list, type) {
             <span class="card-date">${fmtDate(item.date)}</span>
           </div>
           <div class="card-text">${escHtml(item.reason)}</div>
+          ${angerComments.length > 0 ? `<div style="margin-top:8px;padding:8px 12px;background:rgba(255,255,255,0.6);border-radius:8px;">${angerComments.map(c => {
+            const ca = c.author === 'me' ? '🍳 锅锅' : '🍜 盖盖';
+            return `<div style="font-size:0.82em;margin-bottom:4px;border-bottom:1px dashed #eee;padding-bottom:4px;"><b style="color:var(--pink);">${ca}：</b>${escHtml(c.text)}<span style="color:var(--text-light);font-size:0.85em;margin-left:6px;">${fmtDate(c.date)}</span></div>`;
+          }).join('')}</div>` : ''}
           ${item.resolved
             ? `<div style="margin-top:8px;font-size:0.85em;color:#77dd77;">✅ 已解决 — ${fmtDate(item.resolvedDate)}</div>`
             : `<div class="card-actions">
                 <button class="btn btn-sm btn-success" onclick="resolveAnger('${item.id}')">🤗 哄一哄 (-50分)</button>
+                <button class="btn btn-sm btn-secondary" onclick="openReplyModal('angers','${item.id}')">💬 回复</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteItem('angers','${item.id}')">🗑 删除</button>
               </div>`}
+          ${item.resolved ? `<div class="card-actions"><button class="btn btn-sm btn-secondary" onclick="openReplyModal('angers','${item.id}')">💬 回复</button><button class="btn btn-sm btn-danger" onclick="deleteItem('angers','${item.id}')">🗑 删除</button></div>` : ''}
         </div>`;
     }
+    const comments = (item.comments || []);
+    const replyType = type==='note'?'notes':type==='happy'?'happyMoments':'memories';
     return `
       <div class="card ${type === 'happy' ? 'happy' : ''}">
         <div class="card-header">
@@ -1014,8 +1058,13 @@ function renderList(containerId, list, type) {
           <span class="card-date">${fmtDate(item.date)}</span>
         </div>
         <div class="card-text">${escHtml(item.text || item.reason)}</div>
+        ${comments.length > 0 ? `<div style="margin-top:8px;padding:8px 12px;background:rgba(255,255,255,0.6);border-radius:8px;">${comments.map(c => {
+          const ca = c.author === 'me' ? '🍳 锅锅' : '🍜 盖盖';
+          return `<div style="font-size:0.82em;margin-bottom:4px;border-bottom:1px dashed #eee;padding-bottom:4px;"><b style="color:var(--pink);">${ca}：</b>${escHtml(c.text)}<span style="color:var(--text-light);font-size:0.85em;margin-left:6px;">${fmtDate(c.date)}</span></div>`;
+        }).join('')}</div>` : ''}
         <div class="card-actions">
-          <button class="btn btn-sm btn-danger" onclick="deleteItem('${type==='note'?'notes':type==='happy'?'happyMoments':'memories'}','${item.id}')">🗑 删除</button>
+          ${type !== 'note' ? `<button class="btn btn-sm btn-secondary" onclick="openReplyModal('${replyType}','${item.id}')">💬 回复</button>` : ''}
+          <button class="btn btn-sm btn-danger" onclick="deleteItem('${replyType}','${item.id}')">🗑 删除</button>
         </div>
       </div>`;
   }).join('');
