@@ -453,7 +453,8 @@ body::before {
     &nbsp;|&nbsp;
     <span id="server-status">🟡 连接中...</span>
     &nbsp;|&nbsp;
-    <button onclick="resetData()" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.85em;">🔄 重置本地</button>
+    <button onclick="resetData()" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.85em;">🔄 重置</button>
+    <br><span style="color:var(--text-light);">数据存于 Supabase 云端，电脑关了也能用</span>
   </div>
 </div>
 
@@ -476,34 +477,46 @@ const COUPON_DEFS = [
 let data = { memories: [], angers: [], happyMoments: [], coupons: [], notes: [], points: 0, specialDates: [] };
 let online = false;
 
+// Supabase config
+const SB_URL = 'https://bhcsuzzducbigpnhqgkv.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoY3N1enpkdWNiaWdwbmhxZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3OTQ3ODUsImV4cCI6MjA5NTM3MDc4NX0.OOw6CaYieeeD61aT9amkJZRaPp4SHyBc7H9LeoM5W1g';
+const SB_HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+
 function updateStatus(msg) { const el = document.getElementById('server-status'); if (el) el.innerHTML = msg; }
 
 async function fetchData() {
   try {
-    const res = await fetch('/api/data');
+    const res = await fetch(SB_URL + '/rest/v1/couple_data?select=data&id=eq.1', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
     if (res.ok) {
-      data = await res.json();
-      online = true;
-      updateStatus('🟢 在线同步');
-      return;
+      const rows = await res.json();
+      if (rows.length > 0 && rows[0].data) {
+        data = rows[0].data;
+        if (!data.specialDates) data.specialDates = [];
+        online = true;
+        updateStatus('🟢 在线同步');
+        saveLocal();
+        return;
+      }
     }
   } catch (_) {}
   online = false;
   loadLocal();
-  updateStatus('🟡 离线(本地)');
+  updateStatus('🟡 离线(本地缓存)');
 }
 
 async function saveDataRemote() {
   try {
-    const res = await fetch('/api/data', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+    const res = await fetch(SB_URL + '/rest/v1/couple_data?id=eq.1', {
+      method: 'PATCH',
+      headers: SB_HEADERS,
+      body: JSON.stringify({ data: data })
     });
     if (res.ok) { updateStatus('🟢 在线同步'); return; }
   } catch (_) {}
   online = false;
-  updateStatus('🟡 离线(本地)');
+  updateStatus('🟡 离线(本地缓存)');
   saveLocal();
 }
 
@@ -511,12 +524,12 @@ function loadLocal() { const d = localStorage.getItem('couple-space'); if (d) { 
 function saveLocal() { localStorage.setItem('couple-space', JSON.stringify(data)); }
 
 async function saveData() {
-  if (online) await saveDataRemote();
   saveLocal();
+  if (online) await saveDataRemote();
 }
 
 function resetData() {
-  if (!confirm('确定要重置本地数据吗？\n\n这不会影响服务器上的数据。')) return;
+  if (!confirm('确定要重置本地数据吗？云端数据不受影响。')) return;
   localStorage.removeItem('couple-space');
   location.reload();
 }
@@ -861,20 +874,13 @@ function renderSyncBanner() {
   const text = document.getElementById('sync-banner-text');
   const linkDiv = document.getElementById('sync-banner-link');
   if (!banner || !text || !linkDiv) return;
-
-  if (online) {
-    banner.style.display = 'block';
-    text.textContent = '🔗 把这个链接发给盖盖，数据就能同步啦！';
-    const link = window.location.href.split('?')[0];
-    linkDiv.innerHTML = `
-      <code style="background:white;padding:6px 10px;border-radius:6px;font-size:0.72em;word-break:break-all;max-width:280px;">${link}</code>
-      <button class="btn btn-primary btn-sm" onclick="copyLink('${link}')">📋 复制</button>
-    `;
-  } else {
-    banner.style.display = 'block';
-    text.textContent = '⚠️ 当前离线，请确保服务器在运行';
-    linkDiv.innerHTML = '';
-  }
+  banner.style.display = 'block';
+  const link = 'https://jade-tapioca-579957.netlify.app';
+  text.textContent = '🔗 把这个链接发给盖盖，两人数据实时同步！';
+  linkDiv.innerHTML = `
+    <code style="background:white;padding:6px 10px;border-radius:6px;font-size:0.72em;">${link}</code>
+    <button class="btn btn-primary btn-sm" onclick="copyLink('${link}')">📋 复制</button>
+  `;
 }
 
 async function copyLink(link) {
@@ -964,7 +970,7 @@ document.addEventListener('keydown', e => {
   if (keys[e.key]) switchTab(keys[e.key]);
 });
 
-setInterval(async () => { if (online) await fetchData(); }, 15000);
+setInterval(async () => { await fetchData(); renderAll(); }, 15000);
 </script>
 </body>
 </html>
