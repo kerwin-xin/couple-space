@@ -393,6 +393,7 @@ body::before {
           <div class="quick-action" onclick="switchTab('happy'); openAddModal('happy')">😊 记开心</div>
           <div class="quick-action" onclick="switchTab('angers'); openAddModal('anger')">😤 记生气</div>
           <div class="quick-action" onclick="switchTab('shop')">🛒 逛商店</div>
+          <div class="quick-action" onclick="doCheckin()">📅 每日签到</div>
         </div>
       </div>
     </div>
@@ -475,9 +476,11 @@ const COUPON_DEFS = [
   { id: 'c4', name: '决定权券', icon: '👑', cost: 150, desc: '获得一次决定权' },
   { id: 'c5', name: '抱抱券', icon: '🤗', cost: 50, desc: '兑换一个温暖的抱抱' },
   { id: 'c6', name: '美食券', icon: '🍰', cost: 90, desc: '兑换一顿美食请客' },
+  { id: 'c7', name: '礼物券', icon: '🎁', cost: 1999, desc: '要求对方赠送一个惊喜礼物' },
+  { id: 'c8', name: '见面券', icon: '✈️', cost: 9999, desc: '直接兑换一次额外见面机会' },
 ];
 
-let data = { memories: [], angers: [], happyMoments: [], coupons: [], notes: [], points: 0, specialDates: [], memo: '' };
+let data = { memories: [], angers: [], happyMoments: [], coupons: [], notes: [], points: 0, specialDates: [], memo: '', dailyPoints: {date:'',me:0,you:0}, lastCheckin: {date:'',me:false,you:false} };
 let online = false;
 
 // Supabase config
@@ -497,6 +500,9 @@ async function fetchData() {
       if (rows.length > 0 && rows[0].data) {
         data = rows[0].data;
         if (!data.specialDates) data.specialDates = [];
+        if (!data.dailyPoints) data.dailyPoints = { date: '', me: 0, you: 0 };
+        if (!data.lastCheckin) data.lastCheckin = { date: '', me: false, you: false };
+        if (typeof data.memo === 'undefined') data.memo = '';
         online = true;
         updateStatus('🟢 在线同步');
         saveLocal();
@@ -635,9 +641,57 @@ function spawnHearts(x, y) {
   setTimeout(() => container.remove(), 2000);
 }
 
-function addPoints(amount, reason) {
-  data.points += amount;
-  showToast(`+${amount}分！${reason}`, 'success');
+const DAILY_CAP = 100;
+
+function resetDailyIfNeeded() {
+  const today = new Date().toDateString();
+  if (data.dailyPoints.date !== today) {
+    data.dailyPoints = { date: today, me: 0, you: 0 };
+  }
+  if (data.lastCheckin.date !== today) {
+    data.lastCheckin = { date: today, me: false, you: false };
+  }
+}
+
+function addPoints(amount, reason, author) {
+  resetDailyIfNeeded();
+  const key = author || 'me';
+  const remaining = DAILY_CAP - (data.dailyPoints[key] || 0);
+  if (remaining <= 0) {
+    showToast(`${key==='me'?'锅锅':'盖盖'}今日积分已达上限(${DAILY_CAP})！`, 'error');
+    return 0;
+  }
+  const actual = Math.min(amount, remaining);
+  data.points += actual;
+  data.dailyPoints[key] = (data.dailyPoints[key] || 0) + actual;
+  if (actual < amount) {
+    showToast(`+${actual}分！${reason} (已达今日上限${DAILY_CAP})`, 'success');
+  } else {
+    showToast(`+${actual}分！${reason}`, 'success');
+  }
+  return actual;
+}
+
+async function doCheckin() {
+  resetDailyIfNeeded();
+  openModal(`
+    <h3>📅 每日签到 (+10分)</h3>
+    <p style="font-size:0.9em;color:var(--text-light);margin-bottom:14px;">今天谁要签到？</p>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      ${!data.lastCheckin.me ? '<button class="btn btn-primary" onclick="checkinPerson(\'me\')">🍳 锅锅签到</button>' : '<span style="background:#eee;padding:8px 16px;border-radius:20px;">🍳 锅锅 已签 ✅</span>'}
+      ${!data.lastCheckin.you ? '<button class="btn btn-primary" onclick="checkinPerson(\'you\')">🍜 盖盖签到</button>' : '<span style="background:#eee;padding:8px 16px;border-radius:20px;">🍜 盖盖 已签 ✅</span>'}
+    </div>
+    ${data.lastCheckin.me && data.lastCheckin.you ? '<p style="text-align:center;margin-top:12px;color:#77dd77;">今天都签过啦 🎉</p>' : ''}
+    <div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">关闭</button></div>
+  `);
+}
+
+async function checkinPerson(who) {
+  data.lastCheckin[who] = true;
+  addPoints(10, '每日签到', who);
+  await saveData();
+  closeModal();
+  renderAll();
 }
 
 // ─── Modal ───
@@ -745,8 +799,9 @@ function openAddModal(type) {
 async function addMemory() {
   const text = document.getElementById('mf-text').value.trim();
   if (!text) { showToast('请填写回忆内容', 'error'); return; }
-  data.memories.unshift({ id: genId(), text, author: document.getElementById('mf-author').value, date: Date.now() });
-  addPoints(15, '添加回忆');
+  const author = document.getElementById('mf-author').value;
+  data.memories.unshift({ id: genId(), text, author, date: Date.now() });
+  addPoints(15, '添加回忆', author);
   await saveData(); closeModal();
   spawnHearts(window.innerWidth/2, 200);
   renderAll();
@@ -756,8 +811,9 @@ async function addAnger() {
   const reason = document.getElementById('af-reason').value.trim();
   if (!reason) { showToast('请填写生气原因', 'error'); return; }
   const moodEl = document.querySelector('#mood-select .selected');
-  data.angers.unshift({ id: genId(), reason, mood: moodEl ? moodEl.dataset.mood : '😤', author: document.getElementById('af-author').value, date: Date.now(), resolved: false });
-  addPoints(5, '记录生气');
+  const author = document.getElementById('af-author').value;
+  data.angers.unshift({ id: genId(), reason, mood: moodEl ? moodEl.dataset.mood : '😤', author, date: Date.now(), resolved: false });
+  addPoints(5, '记录生气', author);
   await saveData(); closeModal();
   renderAll();
 }
@@ -765,8 +821,9 @@ async function addAnger() {
 async function addHappy() {
   const text = document.getElementById('hf-text').value.trim();
   if (!text) { showToast('请填写开心内容', 'error'); return; }
-  data.happyMoments.unshift({ id: genId(), text, author: document.getElementById('hf-author').value, date: Date.now() });
-  addPoints(10, '记录开心时刻');
+  const hauthor = document.getElementById('hf-author').value;
+  data.happyMoments.unshift({ id: genId(), text, author: hauthor, date: Date.now() });
+  addPoints(10, '记录开心时刻', hauthor);
   await saveData(); closeModal();
   spawnHearts(window.innerWidth/2, 200);
   renderAll();
@@ -775,8 +832,9 @@ async function addHappy() {
 async function addNote() {
   const text = document.getElementById('nf-text').value.trim();
   if (!text) { showToast('请填写纸条内容', 'error'); return; }
-  data.notes.unshift({ id: genId(), text, author: document.getElementById('nf-author').value, date: Date.now() });
-  addPoints(5, '写小纸条');
+  const nauthor = document.getElementById('nf-author').value;
+  data.notes.unshift({ id: genId(), text, author: nauthor, date: Date.now() });
+  addPoints(5, '写小纸条', nauthor);
   await saveData(); closeModal();
   renderAll();
 }
@@ -785,8 +843,12 @@ async function addNote() {
 async function resolveAnger(id) {
   const item = data.angers.find(a => a.id === id);
   if (!item) return;
+  let cheerer = item.author === 'me' ? 'you' : 'me';
+  if (!confirm(`${cheerer==='me'?'锅锅':'盖盖'}来哄一哄吗？消耗50积分！`)) return;
+  resetDailyIfNeeded();
+  if (data.points < 50) { showToast('积分不够哄一哄 😢', 'error'); return; }
   item.resolved = true; item.resolvedDate = Date.now();
-  data.points = Math.max(0, data.points - 50);
+  data.points -= 50;
   showToast('-50分！哄好啦 🤗💕', 'success');
   await saveData();
   spawnHearts(window.innerWidth/2, 200);
