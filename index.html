@@ -361,6 +361,7 @@ body::before {
     <button class="nav-btn" data-tab="happy">😊 开心时刻</button>
     <button class="nav-btn" data-tab="shop">🛒 兑换商店</button>
     <button class="nav-btn" data-tab="notes">💬 小纸条</button>
+    <button class="nav-btn" data-tab="wishlist">🌟 愿望清单</button>
   </div>
 
   <div class="content">
@@ -450,6 +451,16 @@ body::before {
       <div class="points-info">💡 积分解锁：写一张小纸条 +5分</div>
       <div id="notes-list"></div>
     </div>
+
+    <!-- Wishlist -->
+    <div class="page" id="page-wishlist">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="font-size:1.1em;">🌟 愿望清单</h2>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal('wish')">+ 添加愿望</button>
+      </div>
+      <div class="points-info">💡 添加一条愿望 +5分 | 点击完成愿望可标记 ✅</div>
+      <div id="wishlist-list"></div>
+    </div>
   </div>
 
   <!-- Footer -->
@@ -481,7 +492,7 @@ const COUPON_DEFS = [
   { id: 'c8', name: '见面券', icon: '✈️', cost: 9999, desc: '直接兑换一次额外见面机会' },
 ];
 
-let data = { memories: [], angers: [], happyMoments: [], coupons: [], notes: [], points: 0, specialDates: [], memo: '', dailyPoints: {date:'',me:0,you:0}, lastCheckin: {date:'',me:false,you:false} };
+let data = { memories: [], angers: [], happyMoments: [], coupons: [], notes: [], wishlist: [], points: 0, specialDates: [], memo: '', dailyPoints: {date:'',me:0,you:0}, lastCheckin: {date:'',me:false,you:false} };
 let online = false;
 
 // Supabase config
@@ -504,6 +515,7 @@ async function fetchData() {
         if (!data.dailyPoints) data.dailyPoints = { date: '', me: 0, you: 0 };
         if (!data.lastCheckin) data.lastCheckin = { date: '', me: false, you: false };
         if (typeof data.memo === 'undefined') data.memo = '';
+        if (!data.wishlist) data.wishlist = [];
         online = true;
         updateStatus('🟢 在线同步');
         saveLocal();
@@ -800,6 +812,20 @@ function openAddModal(type) {
         <button class="btn btn-primary" onclick="addNote()">💌 发送</button>
       </div>
     `);
+  } else if (type === 'wish') {
+    openModal(`
+      <h3>🌟 添加愿望</h3>
+      <div class="form-group"><label>谁提出的？</label>
+        <select id="wf-author"><option value="me">🍳 锅锅</option><option value="you">🍜 盖盖</option></select>
+      </div>
+      <div class="form-group"><label>想一起做什么？</label>
+        <textarea id="wf-text" placeholder="写下一个想一起实现的愿望..."></textarea>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="addWish()">🌟 添加</button>
+      </div>
+    `);
   }
 }
 
@@ -856,6 +882,24 @@ async function addNote() {
   data.notes.unshift({ id: genId(), text, author: nauthor, date: Date.now() });
   addPoints(5, '写小纸条', nauthor);
   await saveData(); closeModal();
+  renderAll();
+}
+
+async function addWish() {
+  const text = document.getElementById('wf-text').value.trim();
+  if (!text) { showToast('请填写愿望内容', 'error'); return; }
+  const wauthor = document.getElementById('wf-author').value;
+  data.wishlist.unshift({ id: genId(), text, author: wauthor, date: Date.now(), done: false });
+  addPoints(5, '添加愿望', wauthor);
+  await saveData(); closeModal();
+  renderAll();
+}
+
+async function toggleWish(id) {
+  const item = data.wishlist.find(w => w.id === id);
+  if (!item) return;
+  item.done = !item.done;
+  await saveData();
   renderAll();
 }
 
@@ -990,6 +1034,7 @@ function renderAll() {
   renderList('angers-list', data.angers, 'anger');
   renderList('happy-list', data.happyMoments, 'happy');
   renderList('notes-list', data.notes, 'note');
+  renderWishlist();
   renderShop();
   renderCoupons();
   // Load memo (don't overwrite while user is editing)
@@ -1070,6 +1115,35 @@ function renderList(containerId, list, type) {
   }).join('');
 }
 
+function renderWishlist() {
+  const el = document.getElementById('wishlist-list');
+  if (!el) return;
+  const list = data.wishlist || [];
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty"><span class="emoji">🌟</span><p>还没有愿望，快来添加吧！</p></div>';
+    return;
+  }
+  const undone = list.filter(w => !w.done);
+  const done = list.filter(w => w.done);
+  const renderWish = (w) => {
+    const authorLabel = w.author === 'me' ? '🍳 锅锅' : '🍜 盖盖';
+    const authorClass = w.author === 'me' ? 'me' : 'you';
+    return `
+      <div class="card" style="${w.done ? 'opacity:0.5;' : ''}">
+        <div class="card-header">
+          <span class="card-author ${authorClass}">${authorLabel}</span>
+          <span class="card-date">${fmtDate(w.date)}</span>
+        </div>
+        <div class="card-text">${w.done ? '<span style="text-decoration:line-through;">' + escHtml(w.text) + '</span>' : escHtml(w.text)}</div>
+        <div class="card-actions">
+          <button class="btn btn-sm ${w.done ? 'btn-secondary' : 'btn-success'}" onclick="toggleWish('${w.id}')">${w.done ? '🔄 重新开始' : '✅ 完成'}</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteItem('wishlist','${w.id}')">🗑 删除</button>
+        </div>
+      </div>`;
+  };
+  el.innerHTML = [...undone, ...done].map(renderWish).join('');
+}
+
 function renderShop() {
   const grid = document.getElementById('shop-grid');
   if (!grid) return;
@@ -1106,7 +1180,7 @@ function escHtml(s) { const d = document.createElement('div'); d.textContent = s
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-  const keys = { '1':'home','2':'memories','3':'angers','4':'happy','5':'shop','6':'notes' };
+  const keys = { '1':'home','2':'memories','3':'angers','4':'happy','5':'shop','6':'notes','7':'wishlist' };
   if (keys[e.key]) switchTab(keys[e.key]);
 });
 
