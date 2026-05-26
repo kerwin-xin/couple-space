@@ -567,21 +567,28 @@ function getLunarBirthday(name) {
 function buildCountdowns() {
   const now = new Date();
   const result = [];
-  const anni = data.specialDates.find(d => d.name && d.name.includes('纪念日'));
-  const startYear = anni ? new Date(anni.date).getFullYear() : 2025;
 
-  // Anniversary
-  let d2 = new Date(now.getFullYear(), 11, 22);
-  if (d2.getTime() <= now.getTime()) d2 = new Date(now.getFullYear() + 1, 11, 22);
-  const daysLeft = Math.ceil((d2.getTime() - now.getTime()) / 86400000);
-  const start = new Date(startYear, 11, 22);
-  const totalDays = Math.floor((now.getTime() - start.getTime()) / 86400000);
-  result.push({
-    name: '💗 纪念日', icon: '💗', daysLeft: daysLeft,
-    dateStr: `12月22日`, desc: `已在一起 ${totalDays} 天`, soon: daysLeft <= 30
+  // All special dates from data
+  data.specialDates.forEach(d => {
+    const origDate = new Date(d.date);
+    let nextDate = new Date(now.getFullYear(), origDate.getMonth(), origDate.getDate());
+    if (nextDate.getTime() <= now.getTime()) {
+      nextDate = new Date(now.getFullYear() + 1, origDate.getMonth(), origDate.getDate());
+    }
+    const daysLeft = Math.ceil((nextDate.getTime() - now.getTime()) / 86400000);
+    const totalDays = Math.floor((now.getTime() - origDate.getTime()) / 86400000);
+    const isAnni = d.name && d.name.includes('纪念日');
+    result.push({
+      name: (isAnni ? '💗 ' : '📅 ') + d.name,
+      icon: isAnni ? '💗' : '📅',
+      daysLeft: daysLeft,
+      dateStr: `${origDate.getMonth()+1}月${origDate.getDate()}日`,
+      desc: isAnni ? `已在一起 ${totalDays} 天` : `距今 ${daysLeft} 天`,
+      soon: daysLeft <= 30
+    });
   });
 
-  // Lunar birthdays
+  // Lunar birthdays (not in specialDates, always shown)
   ['锅锅', '盖盖'].forEach(name => {
     const lb = getLunarBirthday(name);
     if (lb) {
@@ -909,8 +916,11 @@ function openDateModal() {
     </div>
   `).join('');
   openModal(`
-    <h3>📅 设置纪念日</h3>
+    <h3>📅 设置纪念日 (+5分)</h3>
     ${dates || '<p style="color:var(--text-light);font-size:0.9em;">还没有纪念日</p>'}
+    <div class="form-group"><label>谁设置的？</label>
+      <select id="dt-author"><option value="me">🍳 锅锅</option><option value="you">🍜 盖盖</option></select>
+    </div>
     <div class="form-group"><label>名称</label><input id="dt-name" placeholder="例如：第一次约会..."></div>
     <div class="form-group"><label>日期</label><input type="date" id="dt-date"></div>
     <div class="modal-btns">
@@ -924,7 +934,9 @@ async function addDate() {
   const name = document.getElementById('dt-name').value.trim();
   const dateStr = document.getElementById('dt-date').value;
   if (!name || !dateStr) { showToast('请填写完整', 'error'); return; }
+  const dtauthor = document.getElementById('dt-author').value;
   data.specialDates.push({ name, date: new Date(dateStr).getTime() });
+  addPoints(5, '设置纪念日', dtauthor);
   await saveData(); closeModal(); renderAll();
 }
 
@@ -956,8 +968,10 @@ async function saveMemo() {
   const memoEl = document.getElementById('memo-text');
   if (!memoEl) return;
   data.memo = memoEl.value;
+  data.points += 5;
   await saveData();
-  showToast('备忘录已保存！', 'success');
+  showToast('备忘录已保存！+5分', 'success');
+  renderAll();
 }
 
 async function copyLink(link) {
