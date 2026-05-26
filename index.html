@@ -404,6 +404,7 @@ body::before {
         <h2 style="font-size:1.1em;">💌 我们的回忆</h2>
         <button class="btn btn-primary btn-sm" onclick="openAddModal('memory')">+ 添加回忆</button>
       </div>
+      <div class="points-info">💡 按中文字数奖励积分（每字1分，上限100分）</div>
       <div id="memories-list"></div>
     </div>
 
@@ -413,7 +414,7 @@ body::before {
         <h2 style="font-size:1.1em;">😤 生气记录本</h2>
         <button class="btn btn-primary btn-sm" onclick="openAddModal('anger')">+ 记录生气</button>
       </div>
-      <div class="points-info">💡 记录生气 +5分 | 另一方「哄一哄」消耗50积分</div>
+      <div class="points-info">💡 按中文字数奖励积分（每字1分，上限100分）| 另一方「哄一哄」消耗50积分</div>
       <div id="angers-list"></div>
     </div>
 
@@ -423,7 +424,7 @@ body::before {
         <h2 style="font-size:1.1em;">😊 开心时刻</h2>
         <button class="btn btn-primary btn-sm" onclick="openAddModal('happy')">+ 记录开心</button>
       </div>
-      <div class="points-info">💡 积分解锁：记录一个开心时刻 +10分</div>
+      <div class="points-info">💡 按中文字数奖励积分（每字1分，上限100分）</div>
       <div id="happy-list"></div>
     </div>
 
@@ -795,13 +796,21 @@ function openAddModal(type) {
   }
 }
 
+// ─── Helpers ───
+function countChineseChars(text) {
+  const matches = text.match(/[一-鿿㐀-䶿]/g);
+  return matches ? matches.length : 0;
+}
+
 // ─── Add Functions ───
 async function addMemory() {
   const text = document.getElementById('mf-text').value.trim();
   if (!text) { showToast('请填写回忆内容', 'error'); return; }
   const author = document.getElementById('mf-author').value;
   data.memories.unshift({ id: genId(), text, author, date: Date.now() });
-  addPoints(15, '添加回忆', author);
+  const chars = countChineseChars(text);
+  const pts = Math.min(chars, 100);
+  addPoints(pts, `添加回忆 (${chars}字)`, author);
   await saveData(); closeModal();
   spawnHearts(window.innerWidth/2, 200);
   renderAll();
@@ -813,7 +822,9 @@ async function addAnger() {
   const moodEl = document.querySelector('#mood-select .selected');
   const author = document.getElementById('af-author').value;
   data.angers.unshift({ id: genId(), reason, mood: moodEl ? moodEl.dataset.mood : '😤', author, date: Date.now(), resolved: false });
-  addPoints(5, '记录生气', author);
+  const chars = countChineseChars(reason);
+  const pts = Math.min(chars, 100);
+  addPoints(pts, `记录生气 (${chars}字)`, author);
   await saveData(); closeModal();
   renderAll();
 }
@@ -823,7 +834,9 @@ async function addHappy() {
   if (!text) { showToast('请填写开心内容', 'error'); return; }
   const hauthor = document.getElementById('hf-author').value;
   data.happyMoments.unshift({ id: genId(), text, author: hauthor, date: Date.now() });
-  addPoints(10, '记录开心时刻', hauthor);
+  const chars = countChineseChars(text);
+  const pts = Math.min(chars, 100);
+  addPoints(pts, `记录开心时刻 (${chars}字)`, hauthor);
   await saveData(); closeModal();
   spawnHearts(window.innerWidth/2, 200);
   renderAll();
