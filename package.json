@@ -1,0 +1,8 @@
+{
+  "name": "couple-space",
+  "version": "1.0.0",
+  "description": "我们的情侣空间 - Our Couple Space",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

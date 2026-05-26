@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🍳🍜 锅锅盖盖的情侣空间</title>
+<style>
+:root {
+  --pink: #ff6b9d;
+  --pink-light: #ffb8d0;
+  --pink-bg: #fff0f5;
+  --rose: #ff8fab;
+  --coral: #ff7b7b;
+  --peach: #ffb3a7;
+  --cream: #fff5ee;
+  --white: #ffffff;
+  --text: #5c3d4a;
+  --text-light: #8e6b78;
+  --shadow: 0 4px 20px rgba(255,107,157,0.15);
+  --radius: 16px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #fff0f5 0%, #ffe4e1 50%, #fff5ee 100%);
+  color: var(--text);
+  min-height: 100vh;
+  background-attachment: fixed;
+}
+body::before {
+  content: '';
+  position: fixed; top:0; left:0; right:0; bottom:0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 15c-2 4-6 8-10 8s-8-4-10-8c2-4 6-8 10-8s8 4 10 8z' fill='%23ffb8d040'/%3E%3C/svg%3E");
+  pointer-events: none; z-index:0;
+}
+#app { max-width: 700px; margin: 0 auto; padding: 16px; position: relative; z-index: 1; }
+.header {
+  background: linear-gradient(135deg, var(--pink), var(--rose));
+  color: white;
+  padding: 20px 24px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.header::after {
+  content: '💕 💗 💖';
+  position: absolute;
+  right: 16px;
+  top: 4px;
+  font-size: 12px;
+  opacity: 0.3;
+  letter-spacing: 4px;
+}
+.header h1 { font-size: 1.4em; font-weight: 700; }
+.header-points {
+  background: rgba(255,255,255,0.25);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.95em;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.header-points:hover { transform: scale(1.05); }
+.header-points span { font-size: 1.3em; }
+.nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.nav-btn {
+  flex: 1;
+  min-width: 70px;
+  padding: 12px 8px;
+  border: 2px solid var(--pink-light);
+  background: var(--white);
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--text);
+  transition: all 0.25s;
+  white-space: nowrap;
+}
+.nav-btn:hover { background: var(--pink-bg); transform: translateY(-2px); }
+.nav-btn.active {
+  background: var(--pink);
+  color: white;
+  border-color: var(--pink);
+  box-shadow: 0 4px 12px rgba(255,107,157,0.35);
+}
+.content {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  min-height: 400px;
+}
+.page { display: none; }
+.page.active { display: block; }
+.card {
+  background: var(--pink-bg);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-left: 4px solid var(--pink);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+.card:hover { transform: translateX(4px); box-shadow: 0 2px 12px rgba(255,107,157,0.12); }
+.card.anger { border-left-color: var(--coral); }
+.card.happy { border-left-color: #ffb347; background: #fff8f0; }
+.card.resolved { opacity: 0.7; border-left-color: #aaa; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.card-author {
+  font-size: 0.8em;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+.card-author.me { background: var(--pink-light); color: #8b2252; }
+.card-author.you { background: #d4c5f9; color: #4a3a7a; }
+.card-date { font-size: 0.78em; color: var(--text-light); }
+.card-text { font-size: 0.95em; line-height: 1.5; white-space: pre-wrap; }
+.card-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+.btn-primary { background: var(--pink); color: white; }
+.btn-secondary { background: var(--pink-light); color: #8b2252; }
+.btn-danger { background: var(--coral); color: white; }
+.btn-success { background: #77dd77; color: white; }
+.btn-sm { padding: 5px 12px; font-size: 0.78em; }
+.form-group { margin-bottom: 14px; }
+.form-group label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.85em;
+  margin-bottom: 5px;
+  color: var(--text-light);
+}
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--pink-light);
+  border-radius: 12px;
+  font-size: 0.95em;
+  font-family: inherit;
+  color: var(--text);
+  transition: border-color 0.2s;
+  background: var(--white);
+}
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+  outline: none;
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(255,107,157,0.12);
+}
+.form-group textarea { min-height: 90px; resize: vertical; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat-card {
+  background: linear-gradient(135deg, var(--pink-bg), var(--cream));
+  padding: 20px;
+  border-radius: var(--radius);
+  text-align: center;
+  cursor: default;
+}
+.stat-card .emoji { font-size: 2em; display: block; margin-bottom: 6px; }
+.stat-card .num { font-size: 1.8em; font-weight: 800; color: var(--pink); }
+.stat-card .label { font-size: 0.8em; color: var(--text-light); margin-top: 4px; }
+.countdown-section { margin-bottom: 16px; }
+.countdown-section h3 { color: var(--pink); margin-bottom: 12px; font-size: 1.05em; text-align: center; }
+.countdown-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.countdown-card {
+  background: linear-gradient(135deg, #ffe4e1, #ffd1dc);
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  border: 2px solid transparent;
+  transition: all 0.3s;
+}
+.countdown-card.soon { border-color: var(--pink); animation: pulse 2s infinite; }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,157,0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(255,107,157,0); }
+}
+.countdown-card .cd-icon { font-size: 1.8em; display: block; margin-bottom: 4px; }
+.countdown-card .cd-name { font-weight: 700; font-size: 0.9em; color: var(--text); }
+.countdown-card .cd-days { font-size: 2em; font-weight: 800; color: var(--coral); }
+.countdown-card .cd-date { font-size: 0.75em; color: var(--text-light); }
+.dash-quick { margin-top: 16px; }
+.dash-quick h3 { font-size: 1em; color: var(--text-light); margin-bottom: 10px; }
+.quick-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.quick-action {
+  flex: 1;
+  min-width: 100px;
+  padding: 16px;
+  background: var(--white);
+  border: 2px dashed var(--pink-light);
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+.quick-action:hover { border-color: var(--pink); background: var(--pink-bg); transform: translateY(-3px); }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.shop-item {
+  background: linear-gradient(135deg, #fff, var(--pink-bg));
+  padding: 20px;
+  border-radius: var(--radius);
+  text-align: center;
+  border: 2px solid var(--pink-light);
+  transition: all 0.25s;
+  cursor: pointer;
+}
+.shop-item:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(255,107,157,0.2); border-color: var(--pink); }
+.shop-item .icon { font-size: 2.5em; display: block; margin-bottom: 8px; }
+.shop-item .name { font-weight: 700; font-size: 1em; margin-bottom: 4px; }
+.shop-item .cost { color: var(--pink); font-weight: 800; font-size: 0.9em; }
+.shop-item .stock { font-size: 0.78em; color: var(--text-light); margin-top: 4px; }
+.shop-item.sold-out { opacity: 0.5; pointer-events: none; }
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 28px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: modalIn 0.3s ease;
+}
+@keyframes modalIn { from { opacity:0; transform: translateY(30px) scale(0.95); } to { opacity:1; transform: translateY(0) scale(1); } }
+.modal h3 { font-size: 1.2em; margin-bottom: 18px; color: var(--pink); }
+.modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.coupon-inv { margin-top: 20px; padding-top: 16px; border-top: 2px solid var(--pink-light); }
+.coupon-inv h4 { font-size: 0.9em; color: var(--text-light); margin-bottom: 10px; }
+.coupon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--pink-bg);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85em;
+  font-weight: 600;
+  margin: 4px;
+}
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-weight: 600;
+  z-index: 200;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards;
+  pointer-events: none;
+}
+@keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-20px); } }
+@keyframes toastOut { to { opacity:0; transform:translateX(-50%) translateY(-20px); } }
+.toast.success { background: #77dd77; color: #2a5a2a; }
+.toast.error { background: #ff7b7b; color: white; }
+.hearts { position: fixed; pointer-events: none; z-index: 300; }
+.heart { position: absolute; animation: floatUp 1.5s ease-out forwards; }
+@keyframes floatUp {
+  0% { opacity:1; transform: translateY(0) scale(1); }
+  100% { opacity:0; transform: translateY(-150px) scale(0.3); }
+}
+.empty { text-align: center; padding: 40px 20px; color: var(--text-light); }
+.empty .emoji { font-size: 3em; display: block; margin-bottom: 12px; }
+.empty p { font-size: 0.95em; }
+@media (max-width: 480px) {
+  .nav-btn { font-size: 0.75em; padding: 10px 4px; }
+  .header h1 { font-size: 1.1em; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .shop-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.mood-select { display: flex; gap: 10px; flex-wrap: wrap; }
+.mood-option {
+  font-size: 1.6em;
+  padding: 8px 14px;
+  border: 2px solid var(--pink-light);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--white);
+}
+.mood-option:hover, .mood-option.selected {
+  border-color: var(--pink);
+  background: var(--pink-bg);
+  transform: scale(1.1);
+}
+.points-info {
+  background: linear-gradient(135deg, #fff9c4, #fff176);
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 0.82em;
+  margin-bottom: 16px;
+  color: #5d4037;
+  line-height: 1.6;
+}
+.sync-banner {
+  background: linear-gradient(135deg, #fff0f5, #ffe4e1);
+  border: 2px dashed var(--pink);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+.sync-banner p { font-weight: 700; color: var(--pink); margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="header">
+    <h1>🍳💕🍜 锅锅盖盖的小窝</h1>
+    <div class="header-points" onclick="switchTab('shop')" title="点击去商店兑换">
+      ⭐ <span id="points-display">0</span> 积分
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" data-tab="home">🏠 首页</button>
+    <button class="nav-btn" data-tab="memories">💌 回忆墙</button>
+    <button class="nav-btn" data-tab="angers">😤 生气记录</button>
+    <button class="nav-btn" data-tab="happy">😊 开心时刻</button>
+    <button class="nav-btn" data-tab="shop">🛒 兑换商店</button>
+    <button class="nav-btn" data-tab="notes">💬 小纸条</button>
+  </div>
+
+  <div class="content">
+    <!-- Home / Dashboard -->
+    <div class="page active" id="page-home">
+      <div class="stats-grid">
+        <div class="stat-card"><span class="emoji">💌</span><span class="num" id="stat-memories">0</span><div class="label">共同回忆</div></div>
+        <div class="stat-card"><span class="emoji">😊</span><span class="num" id="stat-happy">0</span><div class="label">开心时刻</div></div>
+        <div class="stat-card"><span class="emoji">😤</span><span class="num" id="stat-angers">0</span><div class="label">生气事件</div></div>
+        <div class="stat-card"><span class="emoji">🎟️</span><span class="num" id="stat-coupons">0</span><div class="label">可用券券</div></div>
+      </div>
+
+      <div class="countdown-section">
+        <h3>📅 重要日子倒计时</h3>
+        <div class="countdown-grid" id="countdown-grid"></div>
+      </div>
+
+      <div class="sync-banner" id="sync-banner" style="display:none;">
+        <p id="sync-banner-text"></p>
+        <div id="sync-banner-link" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;"></div>
+      </div>
+
+      <div class="dash-quick">
+        <h3>⚡ 快捷操作</h3>
+        <div class="quick-actions">
+          <div class="quick-action" onclick="switchTab('memories'); openAddModal('memory')">📝 写回忆</div>
+          <div class="quick-action" onclick="switchTab('happy'); openAddModal('happy')">😊 记开心</div>
+          <div class="quick-action" onclick="switchTab('angers'); openAddModal('anger')">😤 记生气</div>
+          <div class="quick-action" onclick="switchTab('shop')">🛒 逛商店</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memories Wall -->
+    <div class="page" id="page-memories">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="font-size:1.1em;">💌 我们的回忆</h2>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal('memory')">+ 添加回忆</button>
+      </div>
+      <div id="memories-list"></div>
+    </div>
+
+    <!-- Anger Log -->
+    <div class="page" id="page-angers">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="font-size:1.1em;">😤 生气记录本</h2>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal('anger')">+ 记录生气</button>
+      </div>
+      <div class="points-info">💡 积分解锁：记录生气 +5分 | 主动道歉并标记已解决 +20分</div>
+      <div id="angers-list"></div>
+    </div>
+
+    <!-- Happy Moments -->
+    <div class="page" id="page-happy">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="font-size:1.1em;">😊 开心时刻</h2>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal('happy')">+ 记录开心</button>
+      </div>
+      <div class="points-info">💡 积分解锁：记录一个开心时刻 +10分</div>
+      <div id="happy-list"></div>
+    </div>
+
+    <!-- Shop -->
+    <div class="page" id="page-shop">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="font-size:1.1em;">🛒 兑换商店</h2>
+        <span style="font-weight:700;color:var(--pink);">⭐ <span id="shop-points">0</span> 积分</span>
+      </div>
+      <div class="shop-grid" id="shop-grid"></div>
+      <div class="coupon-inv" id="coupon-inventory">
+        <h4>🎒 我的券包</h4>
+        <div id="coupon-list"></div>
+      </div>
+    </div>
+
+    <!-- Love Notes -->
+    <div class="page" id="page-notes">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="font-size:1.1em;">💬 小纸条</h2>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal('note')">+ 写纸条</button>
+      </div>
+      <div class="points-info">💡 积分解锁：写一张小纸条 +5分</div>
+      <div id="notes-list"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center;margin-top:16px;font-size:0.78em;color:var(--text-light);">
+    <button onclick="openDateModal()" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:1em;text-decoration:underline;">📅 设置纪念日</button>
+    &nbsp;|&nbsp;
+    <span id="server-status">🟡 连接中...</span>
+    &nbsp;|&nbsp;
+    <button onclick="resetData()" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.85em;">🔄 重置本地</button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+// ─── Data Layer (server API + localStorage fallback) ───
+const COUPON_DEFS = [
+  { id: 'c1', name: '消气券', icon: '🎫', cost: 100, desc: '使用后被原谅一次！' },
+  { id: 'c2', name: '按摩券', icon: '💆', cost: 80, desc: '享受10分钟按摩服务' },
+  { id: 'c3', name: '免做家务券', icon: '🧹', cost: 120, desc: '免除一次家务劳动' },
+  { id: 'c4', name: '决定权券', icon: '👑', cost: 150, desc: '获得一次决定权' },
+  { id: 'c5', name: '抱抱券', icon: '🤗', cost: 50, desc: '兑换一个温暖的抱抱' },
+  { id: 'c6', name: '美食券', icon: '🍰', cost: 90, desc: '兑换一顿美食请客' },
+];
+
+let data = { memories: [], angers: [], happyMoments: [], coupons: [], notes: [], points: 0, specialDates: [] };
+let online = false;
+
+function updateStatus(msg) { const el = document.getElementById('server-status'); if (el) el.innerHTML = msg; }
+
+async function fetchData() {
+  try {
+    const res = await fetch('/api/data');
+    if (res.ok) {
+      data = await res.json();
+      online = true;
+      updateStatus('🟢 在线同步');
+      return;
+    }
+  } catch (_) {}
+  online = false;
+  loadLocal();
+  updateStatus('🟡 离线(本地)');
+}
+
+async function saveDataRemote() {
+  try {
+    const res = await fetch('/api/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) { updateStatus('🟢 在线同步'); return; }
+  } catch (_) {}
+  online = false;
+  updateStatus('🟡 离线(本地)');
+  saveLocal();
+}
+
+function loadLocal() { const d = localStorage.getItem('couple-space'); if (d) { try { data = JSON.parse(d); } catch(_) {} } }
+function saveLocal() { localStorage.setItem('couple-space', JSON.stringify(data)); }
+
+async function saveData() {
+  if (online) await saveDataRemote();
+  saveLocal();
+}
+
+function resetData() {
+  if (!confirm('确定要重置本地数据吗？\n\n这不会影响服务器上的数据。')) return;
+  localStorage.removeItem('couple-space');
+  location.reload();
+}
+
+// ─── Lunar Calendar ───
+const LUNAR_BIRTHDAYS = {
+  '锅锅': { lunar: '正月初三', solar: { 2026:'2026-02-19', 2027:'2027-02-08', 2028:'2028-01-28', 2029:'2029-02-17', 2030:'2030-02-06' } },
+  '盖盖': { lunar: '四月初四', solar: { 2026:'2026-05-20', 2027:'2027-05-09', 2028:'2028-04-28', 2029:'2029-05-18', 2030:'2030-05-08' } }
+};
+
+function getLunarBirthday(name) {
+  const info = LUNAR_BIRTHDAYS[name];
+  if (!info) return null;
+  const now = new Date();
+  for (let y = now.getFullYear(); y <= now.getFullYear() + 1; y++) {
+    const dateStr = info.solar[String(y)];
+    if (dateStr) {
+      const d = new Date(dateStr + 'T00:00:00+08:00');
+      if (d.getTime() > now.getTime()) return { name: name + '生日', date: d, icon: '🎂', lunar: info.lunar };
+    }
+  }
+  return null;
+}
+
+function buildCountdowns() {
+  const now = new Date();
+  const result = [];
+  const anni = data.specialDates.find(d => d.name && d.name.includes('纪念日'));
+  const startYear = anni ? new Date(anni.date).getFullYear() : 2025;
+
+  // Anniversary
+  let d2 = new Date(now.getFullYear(), 11, 22);
+  if (d2.getTime() <= now.getTime()) d2 = new Date(now.getFullYear() + 1, 11, 22);
+  const daysLeft = Math.ceil((d2.getTime() - now.getTime()) / 86400000);
+  const start = new Date(startYear, 11, 22);
+  const totalDays = Math.floor((now.getTime() - start.getTime()) / 86400000);
+  result.push({
+    name: '💗 纪念日', icon: '💗', daysLeft: daysLeft,
+    dateStr: `12月22日`, desc: `已在一起 ${totalDays} 天`, soon: daysLeft <= 30
+  });
+
+  // Lunar birthdays
+  ['锅锅', '盖盖'].forEach(name => {
+    const lb = getLunarBirthday(name);
+    if (lb) {
+      const dl = Math.ceil((lb.date.getTime() - now.getTime()) / 86400000);
+      result.push({
+        name: lb.name, icon: lb.icon, daysLeft: dl,
+        dateStr: `${lb.date.getMonth()+1}月${lb.date.getDate()}日`,
+        desc: `农历${lb.lunar}`, soon: dl <= 30
+      });
+    }
+  });
+
+  result.sort((a, b) => a.daysLeft - b.daysLeft);
+  return result;
+}
+
+function renderCountdown() {
+  const grid = document.getElementById('countdown-grid');
+  if (!grid) return;
+  grid.innerHTML = buildCountdowns().map(c => `
+    <div class="countdown-card ${c.soon ? 'soon' : ''}">
+      <span class="cd-icon">${c.icon}</span>
+      <div class="cd-name">${c.name}</div>
+      <div class="cd-days">${c.daysLeft} 天</div>
+      <div class="cd-date">${c.dateStr} · ${c.desc}</div>
+    </div>
+  `).join('');
+}
+
+// ─── Helpers ───
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function fmtDate(ts) { return new Date(ts).toLocaleDateString('zh-CN', { year:'numeric', month:'short', day:'numeric' }); }
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = `toast ${type||''}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2800);
+}
+
+function spawnHearts(x, y) {
+  const hearts = ['💕','💖','💗','💝','💘','🩷'];
+  const container = document.createElement('div');
+  container.className = 'hearts';
+  container.style.left = x + 'px';
+  container.style.top = y + 'px';
+  for (let i = 0; i < 8; i++) {
+    const h = document.createElement('span');
+    h.className = 'heart';
+    h.textContent = hearts[Math.floor(Math.random()*hearts.length)];
+    h.style.left = (Math.random()-0.5)*80 + 'px';
+    h.style.animationDelay = Math.random()*0.4 + 's';
+    h.style.fontSize = (14 + Math.random()*20) + 'px';
+    container.appendChild(h);
+  }
+  document.body.appendChild(container);
+  setTimeout(() => container.remove(), 2000);
+}
+
+function addPoints(amount, reason) {
+  data.points += amount;
+  showToast(`+${amount}分！${reason}`, 'success');
+}
+
+// ─── Modal ───
+function openModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+// ─── Tab Switching ───
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const page = document.getElementById('page-' + tab);
+  if (page) page.classList.add('active');
+  const btn = document.querySelector(`[data-tab="${tab}"]`);
+  if (btn) btn.classList.add('active');
+  renderAll();
+}
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ─── Open Add Modals ───
+function openAddModal(type) {
+  if (type === 'memory') {
+    openModal(`
+      <h3>📝 添加回忆</h3>
+      <div class="form-group"><label>谁发的？</label>
+        <select id="mf-author"><option value="me">🍳 锅锅</option><option value="you">🍜 盖盖</option></select>
+      </div>
+      <div class="form-group"><label>回忆内容</label>
+        <textarea id="mf-text" placeholder="写下我们一起的回忆..."></textarea>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="addMemory()">💾 保存</button>
+      </div>
+    `);
+  } else if (type === 'anger') {
+    openModal(`
+      <h3>😤 记录生气</h3>
+      <div class="form-group"><label>谁生气了？</label>
+        <select id="af-author"><option value="me">🍳 锅锅</option><option value="you">🍜 盖盖</option></select>
+      </div>
+      <div class="form-group"><label>为什么生气？</label>
+        <textarea id="af-reason" placeholder="描述生气的原因..."></textarea>
+      </div>
+      <div class="form-group"><label>心情指数</label>
+        <div class="mood-select" id="mood-select">
+          <span class="mood-option" data-mood="😡">😡 很生气</span>
+          <span class="mood-option" data-mood="😤">😤 有点气</span>
+          <span class="mood-option" data-mood="😢">😢 委屈</span>
+          <span class="mood-option" data-mood="😒">😒 不爽</span>
+        </div>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="addAnger()">💾 记录</button>
+      </div>
+    `);
+    setTimeout(() => {
+      const sel = document.getElementById('mood-select');
+      if (!sel) return;
+      sel.querySelectorAll('.mood-option').forEach(o => {
+        o.addEventListener('click', () => {
+          sel.querySelectorAll('.mood-option').forEach(x => x.classList.remove('selected'));
+          o.classList.add('selected');
+        });
+      });
+    }, 100);
+  } else if (type === 'happy') {
+    openModal(`
+      <h3>😊 记录开心时刻</h3>
+      <div class="form-group"><label>谁的开心事？</label>
+        <select id="hf-author"><option value="me">🍳 锅锅</option><option value="you">🍜 盖盖</option></select>
+      </div>
+      <div class="form-group"><label>开心的事</label>
+        <textarea id="hf-text" placeholder="写下开心的时刻..."></textarea>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="addHappy()">💾 保存</button>
+      </div>
+    `);
+  } else if (type === 'note') {
+    openModal(`
+      <h3>💬 写小纸条</h3>
+      <div class="form-group"><label>谁写的？</label>
+        <select id="nf-author"><option value="me">🍳 锅锅</option><option value="you">🍜 盖盖</option></select>
+      </div>
+      <div class="form-group"><label>纸条内容</label>
+        <textarea id="nf-text" placeholder="想对TA说什么悄悄话..."></textarea>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="addNote()">💌 发送</button>
+      </div>
+    `);
+  }
+}
+
+// ─── Add Functions ───
+async function addMemory() {
+  const text = document.getElementById('mf-text').value.trim();
+  if (!text) { showToast('请填写回忆内容', 'error'); return; }
+  data.memories.unshift({ id: genId(), text, author: document.getElementById('mf-author').value, date: Date.now() });
+  addPoints(15, '添加回忆');
+  await saveData(); closeModal();
+  spawnHearts(window.innerWidth/2, 200);
+  renderAll();
+}
+
+async function addAnger() {
+  const reason = document.getElementById('af-reason').value.trim();
+  if (!reason) { showToast('请填写生气原因', 'error'); return; }
+  const moodEl = document.querySelector('#mood-select .selected');
+  data.angers.unshift({ id: genId(), reason, mood: moodEl ? moodEl.dataset.mood : '😤', author: document.getElementById('af-author').value, date: Date.now(), resolved: false });
+  addPoints(5, '记录生气');
+  await saveData(); closeModal();
+  renderAll();
+}
+
+async function addHappy() {
+  const text = document.getElementById('hf-text').value.trim();
+  if (!text) { showToast('请填写开心内容', 'error'); return; }
+  data.happyMoments.unshift({ id: genId(), text, author: document.getElementById('hf-author').value, date: Date.now() });
+  addPoints(10, '记录开心时刻');
+  await saveData(); closeModal();
+  spawnHearts(window.innerWidth/2, 200);
+  renderAll();
+}
+
+async function addNote() {
+  const text = document.getElementById('nf-text').value.trim();
+  if (!text) { showToast('请填写纸条内容', 'error'); return; }
+  data.notes.unshift({ id: genId(), text, author: document.getElementById('nf-author').value, date: Date.now() });
+  addPoints(5, '写小纸条');
+  await saveData(); closeModal();
+  renderAll();
+}
+
+// ─── Actions ───
+async function resolveAnger(id) {
+  const item = data.angers.find(a => a.id === id);
+  if (!item) return;
+  item.resolved = true; item.resolvedDate = Date.now();
+  addPoints(20, '主动道歉');
+  await saveData();
+  spawnHearts(window.innerWidth/2, 200);
+  renderAll();
+}
+
+async function deleteItem(type, id) {
+  if (!confirm('确认删除吗？')) return;
+  const list = data[type];
+  const idx = list.findIndex(i => i.id === id);
+  if (idx > -1) list.splice(idx, 1);
+  await saveData();
+  renderAll();
+}
+
+async function buyCoupon(couponDef) {
+  if (data.points < couponDef.cost) {
+    showToast(`积分不足！还需要 ${couponDef.cost - data.points} 分`, 'error');
+    return;
+  }
+  data.points -= couponDef.cost;
+  data.coupons.push({ id: genId(), defId: couponDef.id, name: couponDef.name, icon: couponDef.icon, obtained: Date.now(), used: false });
+  await saveData();
+  showToast(`成功兑换「${couponDef.name}」！`, 'success');
+  spawnHearts(window.innerWidth/2, 300);
+  renderAll();
+}
+
+async function useCoupon(id) {
+  const c = data.coupons.find(x => x.id === id);
+  if (!c) return;
+  c.used = true;
+  await saveData();
+  showToast(`已使用「${c.name}」！`, 'success');
+  spawnHearts(window.innerWidth/2, 300);
+  renderAll();
+}
+
+// ─── Date Modal ───
+function openDateModal() {
+  const dates = data.specialDates.map((d,i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:8px 12px;background:var(--pink-bg);border-radius:8px;">
+      <span>${d.name}: ${fmtDate(d.date)}</span>
+      <button class="btn btn-sm btn-danger" onclick="removeDate(${i})">✕</button>
+    </div>
+  `).join('');
+  openModal(`
+    <h3>📅 设置纪念日</h3>
+    ${dates || '<p style="color:var(--text-light);font-size:0.9em;">还没有纪念日</p>'}
+    <div class="form-group"><label>名称</label><input id="dt-name" placeholder="例如：第一次约会..."></div>
+    <div class="form-group"><label>日期</label><input type="date" id="dt-date"></div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="addDate()">💾 保存</button>
+    </div>
+  `);
+}
+
+async function addDate() {
+  const name = document.getElementById('dt-name').value.trim();
+  const dateStr = document.getElementById('dt-date').value;
+  if (!name || !dateStr) { showToast('请填写完整', 'error'); return; }
+  data.specialDates.push({ name, date: new Date(dateStr).getTime() });
+  await saveData(); closeModal(); renderAll();
+}
+
+async function removeDate(idx) { data.specialDates.splice(idx, 1); await saveData(); openDateModal(); renderAll(); }
+
+// ─── Render ───
+function renderAll() {
+  document.getElementById('points-display').textContent = data.points;
+  document.getElementById('shop-points').textContent = data.points;
+  document.getElementById('stat-memories').textContent = data.memories.length;
+  document.getElementById('stat-happy').textContent = data.happyMoments.length;
+  document.getElementById('stat-angers').textContent = data.angers.filter(a => !a.resolved).length;
+  document.getElementById('stat-coupons').textContent = data.coupons.filter(c => !c.used).length;
+  renderCountdown();
+  renderList('memories-list', data.memories, 'memory');
+  renderList('angers-list', data.angers, 'anger');
+  renderList('happy-list', data.happyMoments, 'happy');
+  renderList('notes-list', data.notes, 'note');
+  renderShop();
+  renderCoupons();
+  renderSyncBanner();
+}
+
+function renderSyncBanner() {
+  const banner = document.getElementById('sync-banner');
+  const text = document.getElementById('sync-banner-text');
+  const linkDiv = document.getElementById('sync-banner-link');
+  if (!banner || !text || !linkDiv) return;
+
+  if (online) {
+    banner.style.display = 'block';
+    text.textContent = '🔗 把这个链接发给盖盖，数据就能同步啦！';
+    const link = window.location.href.split('?')[0];
+    linkDiv.innerHTML = `
+      <code style="background:white;padding:6px 10px;border-radius:6px;font-size:0.72em;word-break:break-all;max-width:280px;">${link}</code>
+      <button class="btn btn-primary btn-sm" onclick="copyLink('${link}')">📋 复制</button>
+    `;
+  } else {
+    banner.style.display = 'block';
+    text.textContent = '⚠️ 当前离线，请确保服务器在运行';
+    linkDiv.innerHTML = '';
+  }
+}
+
+async function copyLink(link) {
+  try { await navigator.clipboard.writeText(link); showToast('已复制！发给盖盖吧 💕', 'success'); }
+  catch(_) { showToast('复制失败，请手动复制', 'error'); }
+}
+
+function renderList(containerId, list, type) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (list.length === 0) {
+    const emojis = { memory: '💌', anger: '😇', happy: '😊', note: '💬' };
+    const msgs = { memory: '还没有共同回忆', anger: '没有生气记录，太甜啦！', happy: '快记录一些开心事吧', note: '还没有小纸条' };
+    el.innerHTML = `<div class="empty"><span class="emoji">${emojis[type]||'💕'}</span><p>${msgs[type]||'暂无内容'}</p></div>`;
+    return;
+  }
+  el.innerHTML = list.map(item => {
+    const authorClass = item.author === 'me' ? 'me' : 'you';
+    const authorLabel = item.author === 'me' ? '🍳 锅锅' : '🍜 盖盖';
+    if (type === 'anger') {
+      return `
+        <div class="card anger ${item.resolved ? 'resolved' : ''}">
+          <div class="card-header">
+            <span class="card-author ${authorClass}">${authorLabel} ${item.mood||'😤'}</span>
+            <span class="card-date">${fmtDate(item.date)}</span>
+          </div>
+          <div class="card-text">${escHtml(item.reason)}</div>
+          ${item.resolved
+            ? `<div style="margin-top:8px;font-size:0.85em;color:#77dd77;">✅ 已解决 — ${fmtDate(item.resolvedDate)}</div>`
+            : `<div class="card-actions">
+                <button class="btn btn-sm btn-success" onclick="resolveAnger('${item.id}')">🤝 道歉和好 (+20分)</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteItem('angers','${item.id}')">🗑 删除</button>
+              </div>`}
+        </div>`;
+    }
+    return `
+      <div class="card ${type === 'happy' ? 'happy' : ''}">
+        <div class="card-header">
+          <span class="card-author ${authorClass}">${authorLabel}</span>
+          <span class="card-date">${fmtDate(item.date)}</span>
+        </div>
+        <div class="card-text">${escHtml(item.text || item.reason)}</div>
+        <div class="card-actions">
+          <button class="btn btn-sm btn-danger" onclick="deleteItem('${type==='note'?'notes':type==='happy'?'happyMoments':'memories'}','${item.id}')">🗑 删除</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderShop() {
+  const grid = document.getElementById('shop-grid');
+  if (!grid) return;
+  grid.innerHTML = COUPON_DEFS.map(c => `
+    <div class="shop-item" onclick="buyCoupon(COUPON_DEFS.find(x=>x.id==='${c.id}'))">
+      <span class="icon">${c.icon}</span><div class="name">${c.name}</div>
+      <div class="cost">⭐ ${c.cost} 积分</div><div class="stock">${c.desc}</div>
+    </div>
+  `).join('');
+}
+
+function renderCoupons() {
+  const el = document.getElementById('coupon-list');
+  if (!el) return;
+  const unused = data.coupons.filter(c => !c.used);
+  if (unused.length === 0) { el.innerHTML = '<p style="color:var(--text-light);font-size:0.85em;">还没有券券，去商店兑换吧~</p>'; return; }
+  el.innerHTML = unused.map(c => `
+    <span class="coupon-badge" style="cursor:pointer;" onclick="useCoupon('${c.id}')" title="点击使用">${c.icon} ${c.name} ×1</span>
+  `).join('');
+}
+
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ─── Init ───
+(async function init() {
+  await fetchData();
+  if (!data.specialDates.find(d => d.name && d.name.includes('纪念日'))) {
+    data.specialDates.push({ name: '💗 纪念日', date: new Date(2025, 11, 22).getTime() });
+    await saveData();
+  }
+  renderAll();
+})();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const keys = { '1':'home','2':'memories','3':'angers','4':'happy','5':'shop','6':'notes' };
+  if (keys[e.key]) switchTab(keys[e.key]);
+});
+
+setInterval(async () => { if (online) await fetchData(); }, 15000);
+</script>
+</body>
+</html>
