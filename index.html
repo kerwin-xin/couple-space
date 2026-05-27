@@ -1353,6 +1353,31 @@ function renderCoupons() {
 
 function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
+// ─── Identity Modal ───
+function showIdentityModal() {
+  openModal(`
+    <h3 style="text-align:center;">👋 你是谁？</h3>
+    <p style="text-align:center;color:var(--text-light);margin-bottom:20px;">选择你的身份，积分自动分开统计</p>
+    <div style="display:flex;gap:16px;justify-content:center;">
+      <div onclick="pickIdentity('me')" style="cursor:pointer;background:linear-gradient(135deg,#ffe4e1,#ffd1dc);padding:24px 28px;border-radius:16px;text-align:center;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+        <div style="font-size:3em;">🍳</div>
+        <div style="font-weight:800;font-size:1.2em;margin-top:8px;">我是 锅锅</div>
+      </div>
+      <div onclick="pickIdentity('you')" style="cursor:pointer;background:linear-gradient(135deg,#e8dff5,#d4c5f9);padding:24px 28px;border-radius:16px;text-align:center;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+        <div style="font-size:3em;">🍜</div>
+        <div style="font-weight:800;font-size:1.2em;margin-top:8px;">我是 盖盖</div>
+      </div>
+    </div>
+  `);
+}
+
+function pickIdentity(v) {
+  viewer = v;
+  setViewer(v);
+  closeModal();
+  renderAll();
+}
+
 // ─── Init ───
 (async function init() {
   await fetchData();
@@ -1360,7 +1385,8 @@ function escHtml(s) { const d = document.createElement('div'); d.textContent = s
     data.specialDates.push({ name: '💗 纪念日', date: new Date(2025, 11, 22).getTime() });
     await saveData();
   }
-  renderAll();
+  // Always show identity picker on load
+  setTimeout(() => showIdentityModal(), 400);
 })();
 
 // Keyboard shortcuts
