@@ -349,8 +349,12 @@ body::before {
 <div id="app">
   <div class="header">
     <h1>🍳💕🍜 锅锅盖盖的小窝</h1>
-    <div class="header-points" onclick="switchTab('shop')" title="点击去商店兑换">
-      ⭐ <span id="points-display">0</span> 积分
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button id="hdr-me" onclick="setViewer('me')" style="background:var(--pink);color:white;border:none;padding:6px 12px;border-radius:20px;cursor:pointer;font-weight:700;font-size:0.85em;">🍳 锅锅</button>
+      <button id="hdr-you" onclick="setViewer('you')" style="background:rgba(255,255,255,0.3);color:white;border:none;padding:6px 12px;border-radius:20px;cursor:pointer;font-size:0.85em;">🍜 盖盖</button>
+      <div class="header-points" onclick="switchTab('shop')" title="点击去商店兑换">
+        ⭐ <span id="points-display">0</span> 积分
+      </div>
     </div>
   </div>
 
@@ -519,8 +523,14 @@ const COUPON_DEFS = [
   { id: 'c8', name: '见面券', icon: '✈️', cost: 9999, desc: '直接兑换一次额外见面机会' },
 ];
 
-let data = { memories: [], angers: [], happyMoments: [], coupons: [], notes: [], wishlist: [], diary: [], points: 0, specialDates: [], memo: '', dailyPoints: {date:'',me:0,you:0}, lastCheckin: {date:'',me:false,you:false}, lastScratch: {date:'',me:false,you:false} };
+let data = { memories: [], angers: [], happyMoments: [], notes: [], wishlist: [], diary: [], specialDates: [], memo: '', memoSaveDate: '', guoguo: { points: 100, coupons: [], dailyEarned: {date:'', earned:0}, checkedIn: '', scratched: '' }, gaigai: { points: 100, coupons: [], dailyEarned: {date:'', earned:0}, checkedIn: '', scratched: '' } };
 let viewer = 'me';
+function me() { return viewer === 'me' ? data.guoguo : data.gaigai; }
+function resetMyDaily() {
+  const today = new Date().toDateString();
+  if (me().dailyEarned.date !== today) me().dailyEarned = { date: today, earned: 0 };
+}
+const DAILY_CAP = 100;
 let online = false;
 
 // Supabase config
@@ -547,6 +557,8 @@ async function fetchData() {
         if (!data.wishlist) data.wishlist = [];
         if (!data.diary) data.diary = [];
         if (!data.lastScratch) data.lastScratch = { date: '', me: false, you: false };
+        if (!data.guoguo) data.guoguo = { points: 100, coupons: [], dailyEarned: {date:'', earned:0}, checkedIn: '', scratched: '' };
+        if (!data.gaigai) data.gaigai = { points: 100, coupons: [], dailyEarned: {date:'', earned:0}, checkedIn: '', scratched: '' };
         online = true;
         updateStatus('🟢 在线同步');
         saveLocal();
@@ -692,29 +704,18 @@ function spawnHearts(x, y) {
   setTimeout(() => container.remove(), 2000);
 }
 
-const DAILY_CAP = 100;
-
-function resetDailyIfNeeded() {
-  const today = new Date().toDateString();
-  if (data.dailyPoints.date !== today) {
-    data.dailyPoints = { date: today, me: 0, you: 0 };
-  }
-  if (data.lastCheckin.date !== today) {
-    data.lastCheckin = { date: today, me: false, you: false };
-  }
-}
-
 function addPoints(amount, reason, author) {
-  resetDailyIfNeeded();
-  const key = author || 'me';
-  const remaining = DAILY_CAP - (data.dailyPoints[key] || 0);
+  const who = author === 'me' ? data.guoguo : data.gaigai;
+  const today = new Date().toDateString();
+  if (who.dailyEarned.date !== today) who.dailyEarned = { date: today, earned: 0 };
+  const remaining = DAILY_CAP - who.dailyEarned.earned;
   if (remaining <= 0) {
-    showToast(`${key==='me'?'锅锅':'盖盖'}今日积分已达上限(${DAILY_CAP})！`, 'error');
+    showToast(`${author==='me'?'锅锅':'盖盖'}今日积分已达上限(${DAILY_CAP})！`, 'error');
     return 0;
   }
   const actual = Math.min(amount, remaining);
-  data.points += actual;
-  data.dailyPoints[key] = (data.dailyPoints[key] || 0) + actual;
+  who.points += actual;
+  who.dailyEarned.earned += actual;
   if (actual < amount) {
     showToast(`+${actual}分！${reason} (已达今日上限${DAILY_CAP})`, 'success');
   } else {
@@ -724,24 +725,30 @@ function addPoints(amount, reason, author) {
 }
 
 async function doCheckin() {
-  resetDailyIfNeeded();
+  const today = new Date().toDateString();
+  const checkedMe = data.guoguo.checkedIn === today;
+  const checkedYou = data.gaigai.checkedIn === today;
   openModal(`
     <h3>📅 每日签到 (+10分)</h3>
     <p style="font-size:0.9em;color:var(--text-light);margin-bottom:14px;">今天谁要签到？</p>
     <div style="display:flex;gap:10px;justify-content:center;">
-      ${!data.lastCheckin.me ? '<button class="btn btn-primary" onclick="checkinPerson(\'me\')">🍳 锅锅签到</button>' : '<span style="background:#eee;padding:8px 16px;border-radius:20px;">🍳 锅锅 已签 ✅</span>'}
-      ${!data.lastCheckin.you ? '<button class="btn btn-primary" onclick="checkinPerson(\'you\')">🍜 盖盖签到</button>' : '<span style="background:#eee;padding:8px 16px;border-radius:20px;">🍜 盖盖 已签 ✅</span>'}
+      ${!checkedMe ? '<button class="btn btn-primary" onclick="checkinPerson(\'me\')">🍳 锅锅签到</button>' : '<span style="background:#eee;padding:8px 16px;border-radius:20px;">🍳 锅锅 已签 ✅</span>'}
+      ${!checkedYou ? '<button class="btn btn-primary" onclick="checkinPerson(\'you\')">🍜 盖盖签到</button>' : '<span style="background:#eee;padding:8px 16px;border-radius:20px;">🍜 盖盖 已签 ✅</span>'}
     </div>
-    ${data.lastCheckin.me && data.lastCheckin.you ? '<p style="text-align:center;margin-top:12px;color:#77dd77;">今天都签过啦 🎉</p>' : ''}
+    ${checkedMe && checkedYou ? '<p style="text-align:center;margin-top:12px;color:#77dd77;">今天都签过啦 🎉</p>' : ''}
     <div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">关闭</button></div>
   `);
 }
 
 async function checkinPerson(who) {
-  data.lastCheckin[who] = true;
-  addPoints(10, '每日签到', who);
+  const today = new Date().toDateString();
+  const person = who === 'me' ? data.guoguo : data.gaigai;
+  if (person.checkedIn === today) { showToast('今天已签到！', 'error'); return; }
+  person.checkedIn = today;
+  person.points += 10;
   await saveData();
   closeModal();
+  showToast('签到成功！+10分', 'success');
   renderAll();
 }
 
@@ -937,10 +944,16 @@ async function toggleWish(id) {
 // ─── Diary ───
 function setViewer(v) {
   viewer = v;
-  document.getElementById('viewer-me').style.background = v === 'me' ? 'var(--pink)' : 'var(--white)';
-  document.getElementById('viewer-me').style.color = v === 'me' ? 'white' : 'var(--text)';
-  document.getElementById('viewer-you').style.background = v === 'you' ? 'var(--pink)' : 'var(--white)';
-  document.getElementById('viewer-you').style.color = v === 'you' ? 'white' : 'var(--text)';
+  // Header buttons
+  const hme = document.getElementById('hdr-me');
+  const hyou = document.getElementById('hdr-you');
+  if (hme) { hme.style.background = v === 'me' ? 'var(--pink)' : 'rgba(255,255,255,0.3)'; }
+  if (hyou) { hyou.style.background = v === 'you' ? 'var(--pink)' : 'rgba(255,255,255,0.3)'; }
+  // Diary viewer buttons
+  const vme = document.getElementById('viewer-me');
+  const vyou = document.getElementById('viewer-you');
+  if (vme) { vme.style.background = v === 'me' ? 'var(--pink)' : 'var(--white)'; vme.style.color = v === 'me' ? 'white' : 'var(--text)'; }
+  if (vyou) { vyou.style.background = v === 'you' ? 'var(--pink)' : 'var(--white)'; vyou.style.color = v === 'you' ? 'white' : 'var(--text)'; }
   renderAll();
 }
 
@@ -981,8 +994,8 @@ async function addDiary() {
 async function revealDiary(id) {
   const item = data.diary.find(d => d.id === id);
   if (!item) return;
-  if (data.points < 10) { showToast('积分不足，需要10积分！', 'error'); return; }
-  data.points -= 10;
+  if (me().points < 10) { showToast('积分不足，需要10积分！', 'error'); return; }
+  me().points -= 10;
   if (!item.revealedTo) item.revealedTo = [];
   item.revealedTo.push(viewer);
   await saveData();
@@ -1026,21 +1039,21 @@ function renderDiary() {
 function renderScratch() {
   const el = document.getElementById('scratch-area');
   if (!el) return;
-  resetDailyIfNeeded();
-  const canMe = !data.lastScratch.me;
-  const canYou = !data.lastScratch.you;
+  const today = new Date().toDateString();
+  const canMe = data.guoguo.scratched !== today;
+  const canYou = data.gaigai.scratched !== today;
   el.innerHTML = `
     <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">
       <div style="background:linear-gradient(135deg,#ffe4e1,#ffd1dc);padding:24px;border-radius:16px;text-align:center;min-width:160px;">
         <div style="font-size:2em;">🍳</div>
-        <div style="font-weight:700;margin:8px 0;">锅锅</div>
+        <div style="font-weight:700;margin:8px 0;">锅锅 (${data.guoguo.points}分)</div>
         ${canMe
           ? `<button class="btn btn-primary" onclick="doScratch('me')" style="font-size:1.2em;padding:12px 28px;">🎰 刮一刮</button>`
           : '<span style="color:#77dd77;font-weight:700;">✅ 今日已刮</span>'}
       </div>
       <div style="background:linear-gradient(135deg,#e8dff5,#d4c5f9);padding:24px;border-radius:16px;text-align:center;min-width:160px;">
         <div style="font-size:2em;">🍜</div>
-        <div style="font-weight:700;margin:8px 0;">盖盖</div>
+        <div style="font-weight:700;margin:8px 0;">盖盖 (${data.gaigai.points}分)</div>
         ${canYou
           ? `<button class="btn btn-primary" onclick="doScratch('you')" style="font-size:1.2em;padding:12px 28px;">🎰 刮一刮</button>`
           : '<span style="color:#77dd77;font-weight:700;">✅ 今日已刮</span>'}
@@ -1050,11 +1063,12 @@ function renderScratch() {
 }
 
 async function doScratch(who) {
-  resetDailyIfNeeded();
-  if (data.lastScratch[who]) { showToast('今天已经刮过了！', 'error'); return; }
+  const today = new Date().toDateString();
+  const person = who === 'me' ? data.guoguo : data.gaigai;
+  if (person.scratched === today) { showToast('今天已经刮过了！', 'error'); return; }
   const pts = Math.floor(Math.random() * 20) + 1;
-  data.lastScratch[who] = true;
-  data.points += pts;
+  person.scratched = today;
+  person.points += pts;
   await saveData();
   spawnHearts(window.innerWidth/2, 300);
   openModal(`
@@ -1073,10 +1087,9 @@ async function resolveAnger(id) {
   if (!item) return;
   let cheerer = item.author === 'me' ? 'you' : 'me';
   if (!confirm(`${cheerer==='me'?'锅锅':'盖盖'}来哄一哄吗？消耗50积分！`)) return;
-  resetDailyIfNeeded();
-  if (data.points < 50) { showToast('积分不够哄一哄 😢', 'error'); return; }
+  if (me().points < 50) { showToast('积分不够哄一哄 😢', 'error'); return; }
   item.resolved = true; item.resolvedDate = Date.now();
-  data.points -= 50;
+  me().points -= 50;
   showToast('-50分！哄好啦 🤗💕', 'success');
   await saveData();
   spawnHearts(window.innerWidth/2, 200);
@@ -1128,12 +1141,12 @@ async function submitReply(type, id) {
 }
 
 async function buyCoupon(couponDef) {
-  if (data.points < couponDef.cost) {
-    showToast(`积分不足！还需要 ${couponDef.cost - data.points} 分`, 'error');
+  if (me().points < couponDef.cost) {
+    showToast(`积分不足！还需要 ${couponDef.cost - me().points} 分`, 'error');
     return;
   }
-  data.points -= couponDef.cost;
-  data.coupons.push({ id: genId(), defId: couponDef.id, name: couponDef.name, icon: couponDef.icon, obtained: Date.now(), used: false });
+  me().points -= couponDef.cost;
+  me().coupons.push({ id: genId(), defId: couponDef.id, name: couponDef.name, icon: couponDef.icon, obtained: Date.now(), used: false });
   await saveData();
   showToast(`成功兑换「${couponDef.name}」！`, 'success');
   spawnHearts(window.innerWidth/2, 300);
@@ -1141,7 +1154,7 @@ async function buyCoupon(couponDef) {
 }
 
 async function useCoupon(id) {
-  const c = data.coupons.find(x => x.id === id);
+  const c = me().coupons.find(x => x.id === id);
   if (!c) return;
   c.used = true;
   await saveData();
@@ -1187,12 +1200,12 @@ async function removeDate(idx) { data.specialDates.splice(idx, 1); await saveDat
 
 // ─── Render ───
 function renderAll() {
-  document.getElementById('points-display').textContent = data.points;
-  document.getElementById('shop-points').textContent = data.points;
+  document.getElementById('points-display').textContent = me().points;
+  document.getElementById('shop-points').textContent = me().points;
   document.getElementById('stat-memories').textContent = data.memories.length;
   document.getElementById('stat-happy').textContent = data.happyMoments.length;
   document.getElementById('stat-angers').textContent = data.angers.filter(a => !a.resolved).length;
-  document.getElementById('stat-coupons').textContent = data.coupons.filter(c => !c.used).length;
+  document.getElementById('stat-coupons').textContent = me().coupons.filter(c => !c.used).length;
   renderCountdown();
   renderList('memories-list', data.memories, 'memory');
   renderList('angers-list', data.angers, 'anger');
@@ -1217,7 +1230,7 @@ async function saveMemo() {
   data.memo = memoEl.value;
   if (data.memoSaveDate !== today) {
     data.memoSaveDate = today;
-    data.points += 5;
+    me().points += 5;
     await saveData();
     showToast('备忘录已保存！+5分', 'success');
   } else {
@@ -1331,7 +1344,7 @@ function renderShop() {
 function renderCoupons() {
   const el = document.getElementById('coupon-list');
   if (!el) return;
-  const unused = data.coupons.filter(c => !c.used);
+  const unused = me().coupons.filter(c => !c.used);
   if (unused.length === 0) { el.innerHTML = '<p style="color:var(--text-light);font-size:0.85em;">还没有券券，去商店兑换吧~</p>'; return; }
   el.innerHTML = unused.map(c => `
     <span class="coupon-badge" style="cursor:pointer;" onclick="useCoupon('${c.id}')" title="点击使用">${c.icon} ${c.name} ×1</span>
