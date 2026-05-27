@@ -543,6 +543,7 @@ async function fetchData() {
         if (!data.dailyPoints) data.dailyPoints = { date: '', me: 0, you: 0 };
         if (!data.lastCheckin) data.lastCheckin = { date: '', me: false, you: false };
         if (typeof data.memo === 'undefined') data.memo = '';
+        if (!data.memoSaveDate) data.memoSaveDate = '';
         if (!data.wishlist) data.wishlist = [];
         if (!data.diary) data.diary = [];
         if (!data.lastScratch) data.lastScratch = { date: '', me: false, you: false };
@@ -1212,10 +1213,17 @@ function renderAll() {
 async function saveMemo() {
   const memoEl = document.getElementById('memo-text');
   if (!memoEl) return;
+  const today = new Date().toDateString();
   data.memo = memoEl.value;
-  data.points += 5;
-  await saveData();
-  showToast('备忘录已保存！+5分', 'success');
+  if (data.memoSaveDate !== today) {
+    data.memoSaveDate = today;
+    data.points += 5;
+    await saveData();
+    showToast('备忘录已保存！+5分', 'success');
+  } else {
+    await saveData();
+    showToast('备忘录已保存！(今日已加过分)', 'success');
+  }
   renderAll();
 }
 
